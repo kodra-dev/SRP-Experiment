@@ -86,6 +86,7 @@ float4 LitPassFragment(Varyings FIN) : SV_TARGET
     surface.normalWS = N;
     surface.metallic = _Metallic;
     surface.smoothness = _Smoothness;
+    surface.metallic = 0;
     float3 result = float3(0, 0, 0);
     
     for(int i = 0; i < _LightCount; i++)

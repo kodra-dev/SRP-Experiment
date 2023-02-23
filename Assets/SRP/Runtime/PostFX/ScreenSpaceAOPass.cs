@@ -85,7 +85,7 @@ namespace SRP.Runtime
 			Settings = settings;
 		}
 
-		private void Setup(Camera camera)
+		private void Setup(ScriptableRenderContext context, Camera camera)
 		{
 			int downsampleDivider = Settings.Downsample ? 2 : 1;
 
@@ -96,7 +96,7 @@ namespace SRP.Runtime
 				1.0f / downsampleDivider,      // Downsampling
 				Settings.SampleCount  // Sample count
 			);
-			SSAOMaterial.SetVector(s_SSAOParamsID, ssaoParams);
+			_buffer.SetGlobalVector(s_SSAOParamsID, ssaoParams);
 
 #if ENABLE_VR && ENABLE_XR_MODULE
                 int eyeCount = renderingData.cameraData.xr.enabled && renderingData.cameraData.xr.singlePassEnabled ? 2 : 1;
@@ -125,12 +125,12 @@ namespace SRP.Runtime
 				m_CameraZExtent[eyeIndex] = farCentre;
 			}
 
-			SSAOMaterial.SetVector(s_ProjectionParams2ID, new Vector4(1.0f / camera.nearClipPlane, 0.0f, 0.0f, 0.0f));
-			SSAOMaterial.SetMatrixArray(s_CameraViewProjectionsID, m_CameraViewProjections);
-			SSAOMaterial.SetVectorArray(s_CameraViewTopLeftCornerID, m_CameraTopLeftCorner);
-			SSAOMaterial.SetVectorArray(s_CameraViewXExtentID, m_CameraXExtent);
-			SSAOMaterial.SetVectorArray(s_CameraViewYExtentID, m_CameraYExtent);
-			SSAOMaterial.SetVectorArray(s_CameraViewZExtentID, m_CameraZExtent);
+			_buffer.SetGlobalVector(s_ProjectionParams2ID, new Vector4(1.0f / camera.nearClipPlane, 0.0f, 0.0f, 0.0f));
+			_buffer.SetGlobalMatrixArray(s_CameraViewProjectionsID, m_CameraViewProjections);
+			_buffer.SetGlobalVectorArray(s_CameraViewTopLeftCornerID, m_CameraTopLeftCorner);
+			_buffer.SetGlobalVectorArray(s_CameraViewXExtentID, m_CameraXExtent);
+			_buffer.SetGlobalVectorArray(s_CameraViewYExtentID, m_CameraYExtent);
+			_buffer.SetGlobalVectorArray(s_CameraViewZExtentID, m_CameraZExtent);
 
 			// Update keywords
 			CoreUtils.SetKeyword(SSAOMaterial, k_OrthographicCameraKeyword, camera.orthographic);
@@ -209,10 +209,12 @@ namespace SRP.Runtime
 			_buffer.GetTemporaryRT(s_SSAOTextureFinalID, m_FinalDescriptor, FilterMode.Bilinear);
 
 			// Configure targets and clear color
-			_buffer.SetRenderTarget(s_SSAOTexture2ID,
-				RenderBufferLoadAction.Load,
-				RenderBufferStoreAction.Store);
+			// _buffer.SetRenderTarget(s_SSAOTexture2ID,
+			// 	RenderBufferLoadAction.Load,
+			// 	RenderBufferStoreAction.Store);
 			// ConfigureTarget(s_SSAOTexture2ID);
+			
+			context.ExecuteAndClearBuffer(_buffer);
 		}
 		
 		private void RenderAndSetBaseMap(RenderTargetIdentifier baseMap, RenderTargetIdentifier target, ShaderPasses pass)
@@ -236,12 +238,9 @@ namespace SRP.Runtime
 
 		public void Draw(ScriptableRenderContext context, Camera camera, RenderTargetIdentifier src, RenderTargetIdentifier dst)
 		{
-			Setup(camera);
+			Setup(context, camera);
 			
-			if (!Settings.AfterOpaque)
-			{
-				CoreUtils.SetKeyword(_buffer, ShaderKeywordStrings.ScreenSpaceOcclusion, true);
-			}
+			CoreUtils.SetKeyword(_buffer, ShaderKeywordStrings.ScreenSpaceOcclusion, true);
 			SetSourceSize(m_AOPassDescriptor);
 
 			Vector4 scaleBiasRt = new Vector4(-1, 1.0f, -1.0f, 1.0f);
@@ -262,27 +261,23 @@ namespace SRP.Runtime
 			_buffer.SetGlobalTexture(k_SSAOTextureName, m_SSAOTextureFinalTarget);
 			_buffer.SetGlobalVector(k_SSAOAmbientOcclusionParamName, new Vector4(0f, 0f, 0f, Settings.DirectLightingStrength));
 
-			// If true, SSAO pass is inserted after opaque pass and is expected to modulate lighting result now.
-			if (Settings.AfterOpaque)
-			{
-				// SetRenderTarget has logic to flip projection matrix when rendering to render texture. Flip the uv to account for that case.
-				bool isCameraColorFinalTarget = false;
-				bool yflip = !isCameraColorFinalTarget;
-				float flipSign = yflip ? -1.0f : 1.0f;
-				scaleBiasRt = (flipSign < 0.0f)
-					? new Vector4(flipSign, 1.0f, -1.0f, 1.0f)
-					: new Vector4(flipSign, 0.0f, 1.0f, 1.0f);
-				_buffer.SetGlobalVector(Shader.PropertyToID("_ScaleBiasRt"), scaleBiasRt);
+			// SetRenderTarget has logic to flip projection matrix when rendering to render texture. Flip the uv to account for that case.
+			bool isCameraColorFinalTarget = false;
+			bool yflip = !isCameraColorFinalTarget;
+			float flipSign = yflip ? -1.0f : 1.0f;
+			scaleBiasRt = (flipSign < 0.0f)
+				? new Vector4(flipSign, 1.0f, -1.0f, 1.0f)
+				: new Vector4(flipSign, 0.0f, 1.0f, 1.0f);
+			_buffer.SetGlobalVector(Shader.PropertyToID("_ScaleBiasRt"), scaleBiasRt);
 
-				// This implicitly also bind depth attachment. Explicitly binding m_Renderer.cameraDepthTarget does not work.
-				_buffer.SetRenderTarget(
-					dst,
-					RenderBufferLoadAction.Load,
-					RenderBufferStoreAction.Store
-				);
-				_buffer.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, SSAOMaterial, 0,
-				(int)ShaderPasses.AfterOpaque);
-			}
+			// This implicitly also bind depth attachment. Explicitly binding m_Renderer.cameraDepthTarget does not work.
+			_buffer.SetRenderTarget(
+				dst,
+				RenderBufferLoadAction.Load,
+				RenderBufferStoreAction.Store
+			);
+			_buffer.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, SSAOMaterial, 0,
+			(int)ShaderPasses.AfterOpaque);
 
 
 			context.ExecuteAndClearBuffer(_buffer);
@@ -291,10 +286,7 @@ namespace SRP.Runtime
 		public void CleanUp(ScriptableRenderContext context)
 		{
 			
-			if (!Settings.AfterOpaque)
-			{
-				CoreUtils.SetKeyword(_buffer, ShaderKeywordStrings.ScreenSpaceOcclusion, false);
-			}
+			CoreUtils.SetKeyword(_buffer, ShaderKeywordStrings.ScreenSpaceOcclusion, false);
 
 			_buffer.ReleaseTemporaryRT(s_SSAOTexture1ID);
 			_buffer.ReleaseTemporaryRT(s_SSAOTexture2ID);

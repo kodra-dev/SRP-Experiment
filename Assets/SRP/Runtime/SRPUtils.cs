@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 namespace SRP.Runtime
@@ -45,11 +46,29 @@ namespace SRP.Runtime
 		}
 
 		public static void GetTemporaryRTFor(
-			int nameID, CommandBuffer buffer, Camera camera, int superSampleScale)
+			int nameID, CommandBuffer buffer, Camera camera, int superSampleScale,
+			int depthBufferBits = 32,
+			FilterMode filterMode = FilterMode.Bilinear,
+			RenderTextureFormat format = RenderTextureFormat.ARGB32)
 		{	
 			buffer.GetTemporaryRT(nameID,
 				camera.pixelWidth * superSampleScale, camera.pixelHeight * superSampleScale,
-				32, FilterMode.Bilinear, RenderTextureFormat.ARGB32);
+				depthBufferBits,
+				filterMode, format);
 		}
+
+		public static void GetTemporaryRTForGraphicsFormat(
+			int nameID, CommandBuffer buffer, Camera camera, int superSampleScale,
+			int depthBufferBits = 32,
+			FilterMode filterMode = FilterMode.Bilinear,
+			GraphicsFormat format = GraphicsFormat.R8G8B8A8_UNorm)
+		{
+			buffer.GetTemporaryRT(nameID,
+				camera.pixelWidth * superSampleScale, camera.pixelHeight * superSampleScale,
+				depthBufferBits,
+				filterMode, format);
+			
+		}
+		
 	}
 }

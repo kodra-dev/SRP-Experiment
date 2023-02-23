@@ -133,5 +133,37 @@
             ENDHLSL
         } 
         
+        /*
+        Pass
+        {
+            Name "Blit Copy Depth"
+            Tags
+            {
+                "LightMode" = "CustomPostFX"
+            }
+            ZTest Always ZWrite On ColorMask 0
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex DefaultPassVertex
+            #pragma fragment BlitFragment
+            
+            #include "PostFX.hlsl"
+            
+            TEXTURE2D(_BlitSource);
+            SAMPLER(sampler_linear_clamp);
+
+            float4 BlitFragment(Varyings FIN) : SV_TARGET
+            {
+                float2 screenUV = FIN.screenUV;
+                float4 copiedSample = SAMPLE_TEXTURE2D_LOD(_BlitSource, sampler_linear_clamp, screenUV,0);
+                return 
+            }
+
+
+            ENDHLSL
+        */
+        
     }
 }

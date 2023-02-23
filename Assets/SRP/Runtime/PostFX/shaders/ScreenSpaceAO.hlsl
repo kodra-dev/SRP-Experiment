@@ -1,5 +1,5 @@
-﻿#ifndef UNIVERSAL_SSAO_INCLUDED
-#define UNIVERSAL_SSAO_INCLUDED
+﻿#ifndef CUSTOM_SSAO_INCLUDED
+#define CUSTOM_SSAO_INCLUDED
 
 // Includes
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
@@ -15,7 +15,7 @@ SAMPLER(sampler_BaseMap);
 SAMPLER(sampler_ScreenSpaceOcclusionTexture);
 
 // Params
-half4 _SSAOParams;
+float4 _SSAOParams;
 half4 _CameraViewTopLeftCorner[2];
 half4x4 _CameraViewProjections[2]; // This is different from UNITY_MATRIX_VP (platform-agnostic projection matrix is used). Handle both non-XR and XR modes.
 
@@ -318,7 +318,6 @@ half4 SSAO(Varyings input) : SV_Target
     half3 vpos_o;
     SampleDepthNormalView(uv, depth_o, norm_o, vpos_o);
 
-    return half4(norm_o, depth_o);
 
     // This was added to avoid a NVIDIA driver issue.
     const half rcpSampleCount = half(rcp(SAMPLE_COUNT));
@@ -463,4 +462,4 @@ half4 FinalBlur(Varyings input) : SV_Target
     return half(1.0) - BlurSmall(uv, delta );
 }
 
-#endif //UNIVERSAL_SSAO_INCLUDED
+#endif 

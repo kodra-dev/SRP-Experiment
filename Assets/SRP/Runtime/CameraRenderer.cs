@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.PackageManager.UI;
 using UnityEngine;
 using UnityEngine.Assertions;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 
 namespace SRP.Runtime
@@ -22,11 +23,20 @@ namespace SRP.Runtime
 		
 		private readonly ShadowSettings _directionalShadowSettings;
 
+		// Unity URP shader property IDs
+        private static readonly int ScaledScreenParamsID = Shader.PropertyToID("_ScaledScreenParams");
+        private static readonly int WorldSpaceCameraPosID = Shader.PropertyToID("_WorldSpaceCameraPos");
+        // private static readonly int ZBufferParamsID = Shader.PropertyToID("_ZBufferParams");
+        private static readonly int OrthoParamsID = Shader.PropertyToID("unity_OrthoParams");
+        private static readonly int ScreenParamsID = Shader.PropertyToID("_ScreenParams");
+        
+        
 		private static readonly int CameraFrameBufferID = Shader.PropertyToID("_CameraFrameBuffer");
 		private static readonly int BackBufferID = Shader.PropertyToID("_PostFXBackBuffer");
 		private static readonly int CompositionLayerID = Shader.PropertyToID("_CompositionLayer");
 
-		private static readonly int DepthNormalBufferID = Shader.PropertyToID("_DepthNormalBuffer");
+		private static readonly int NormalBufferID = Shader.PropertyToID("_CameraNormalsTexture");
+		private static readonly int DepthBufferID = Shader.PropertyToID("_CameraDepthTexture");
 	
 		private readonly List<ShadowedLightInfo> _shadowedLightInfos = new((int) MaxShadowedLightCount);
 
@@ -166,6 +176,7 @@ namespace SRP.Runtime
 							PostFXStack postFXStack, bool needComposition,
 							int superSampleScale)
 		{
+			SetupUnityVariables();
 			
 			
 #if UNITY_EDITOR
@@ -227,6 +238,38 @@ namespace SRP.Runtime
 			ReleaseShadowMap();
 			ReleaseDepthNormal();
 // 			
+
+
+
+			// ===== Local Functions =====
+
+			void SetupUnityVariables()
+			{
+				Vector4 orthoParams = new Vector4(
+					camera.orthographicSize * camera.aspect, camera.orthographicSize, 0.0f, camera.orthographic ? 1.0f : 0.0f);
+
+				// Camera and Screen variables as described in https://docs.unity3d.com/Manual/SL-UnityShaderVariables.html
+				_buffer.SetGlobalVector(WorldSpaceCameraPosID,
+					camera.worldToCameraMatrix.GetColumn(3));
+				_buffer.SetGlobalVector(ScreenParamsID,
+					new Vector4(camera.pixelWidth, camera.pixelHeight, 
+						1.0f + 1.0f / camera.pixelWidth, 1.0f + 1.0f / camera.pixelHeight));
+				_buffer.SetGlobalVector(ScaledScreenParamsID,
+					new Vector4(camera.pixelWidth * superSampleScale, camera.pixelHeight * superSampleScale, 
+						1.0f + 1.0f / (camera.pixelWidth * superSampleScale), 1.0f + 1.0f / (camera.pixelHeight * superSampleScale)));
+				
+				// NOTE: Not sure exactly how, but _ZBufferParams seems to be set by Unity anyway
+				// _buffer.SetGlobalVector(ZBufferParamsID,
+				// 	zBufferParams);
+				
+				_buffer.SetGlobalVector(OrthoParamsID,
+					orthoParams);
+				
+				context.ExecuteAndClearBuffer(_buffer);
+			}
+
+
+
 			
 			void EmitUIGeometry()
 			{
@@ -241,10 +284,15 @@ namespace SRP.Runtime
 			void DrawDepthNormal()
 			{
 				context.SetupCameraProperties(camera);
-				
-				SRPUtils.GetTemporaryRTFor(DepthNormalBufferID, _buffer, camera, superSampleScale);
+
+				SRPUtils.GetTemporaryRTForGraphicsFormat(NormalBufferID, _buffer, camera, superSampleScale,
+					format: GraphicsFormat.R8G8B8A8_SNorm);
+				SRPUtils.GetTemporaryRTFor(DepthBufferID, _buffer, camera, superSampleScale,
+					format: RenderTextureFormat.Depth);
+
 				_buffer.SetRenderTarget(
-					DepthNormalBufferID, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+					NormalBufferID, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
+					DepthBufferID, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
 				_buffer.ClearRenderTarget(
 					true, true, Color.clear);
 				
@@ -256,14 +304,33 @@ namespace SRP.Runtime
 				};
 				var drawingSettings = SRPUtils.CreateDrawingSettings(
 					ShaderPass.DepthNormal.ToTagID(), ref sortingSettings);
-				var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
+				var filteringSettings = new FilteringSettings(RenderQueueRange.all);
 				
 				context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
+				//
+				//
+				// _buffer.SetRenderTarget(
+				// 	DepthBufferID, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+				// _buffer.ClearRenderTarget(
+				// 	true, true, Color.clear);
+				//
+				// context.ExecuteAndClearBuffer(_buffer);
+				//
+				// var sortingSettings2 = new SortingSettings(camera)
+				// {
+				// 	criteria = SortingCriteria.CommonOpaque,
+				// };
+				// var drawingSettings2 = SRPUtils.CreateDrawingSettings(
+				// 	ShaderPass.Depth.ToTagID(), ref sortingSettings2);
+				// var filteringSettings2 = new FilteringSettings(RenderQueueRange.all);
+				//
+				// context.DrawRenderers(cullingResults, ref drawingSettings2, ref filteringSettings2);
 			}
 			
 			void ReleaseDepthNormal()
 			{
-				_buffer.ReleaseTemporaryRT(DepthNormalBufferID);
+				_buffer.ReleaseTemporaryRT(NormalBufferID);
+				_buffer.ReleaseTemporaryRT(DepthBufferID);
 				context.ExecuteAndClearBuffer(_buffer);
 			}
 			

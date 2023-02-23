@@ -18,7 +18,7 @@ struct Varyings
     float4 positionCS   : SV_POSITION;
     float3 positionVS   : VAR_POSITION_VS;
     float4 positionNDC  : VAR_POSITION_NDC;
-    float3 normalWS     : NORMAL;
+    float3 normalWS     : VAR_NORMAL;
     float3 normalVS     : VAR_NORMAL_VS;
 };
 
@@ -38,14 +38,13 @@ Varyings DepthNormalVertex(Attributes VIN)
 }
 
 
+
 float4 DepthNormalFragment(Varyings FIN) : SV_TARGET
 {
-    float z = FIN.positionNDC.z / FIN.positionNDC.w;
-    #if defined(UNITY_REVERSED_Z)
-    z = 1.0f - z;
-    #endif
-    return float4(FIN.normalVS, z);
+    // return 0;
+    return float4(NormalizeNormalPerPixel(FIN.normalWS), 0.0);
 }
+
 
 
 #endif
