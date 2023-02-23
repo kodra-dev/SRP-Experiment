@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/SSAO.unity
+    guid: 184959a82156cb14f81d115752d73470
+  - enabled: 1
     path: Assets/Scenes/Multi-Camera.unity
     guid: 9452093924f3cc34b9092d203ce4b90d
   - enabled: 1

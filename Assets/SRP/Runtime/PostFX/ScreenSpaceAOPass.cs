@@ -87,14 +87,14 @@ namespace SRP.Runtime
 
 		private void Setup(ScriptableRenderContext context, Camera camera)
 		{
-			int downsampleDivider = Settings.Downsample ? 2 : 1;
+			int downsampleDivider = Settings.downsample ? 2 : 1;
 
 			// Update SSAO parameters in the material
 			Vector4 ssaoParams = new Vector4(
-				Settings.Intensity,   // Intensity
-				Settings.Radius,      // Radius
+				Settings.intensity,   // Intensity
+				Settings.radius,      // Radius
 				1.0f / downsampleDivider,      // Downsampling
-				Settings.SampleCount  // Sample count
+				Settings.sampleCount  // Sample count
 			);
 			_buffer.SetGlobalVector(s_SSAOParamsID, ssaoParams);
 
@@ -137,11 +137,11 @@ namespace SRP.Runtime
 
 			ScreenSpaceAOSettings.DepthSource source = this.isRendererDeferred
 				? ScreenSpaceAOSettings.DepthSource.DepthNormals
-				: Settings.Source;
+				: Settings.source;
 
 			if (source == ScreenSpaceAOSettings.DepthSource.Depth)
 			{
-				switch (Settings.NormalSamples)
+				switch (Settings.normalSamples)
 				{
 					case ScreenSpaceAOSettings.NormalQuality.Low:
 						CoreUtils.SetKeyword(SSAOMaterial, k_NormalReconstructionLowKeyword, true);
@@ -259,7 +259,7 @@ namespace SRP.Runtime
 
 			// Set the global SSAO texture and AO Params
 			_buffer.SetGlobalTexture(k_SSAOTextureName, m_SSAOTextureFinalTarget);
-			_buffer.SetGlobalVector(k_SSAOAmbientOcclusionParamName, new Vector4(0f, 0f, 0f, Settings.DirectLightingStrength));
+			_buffer.SetGlobalVector(k_SSAOAmbientOcclusionParamName, new Vector4(0f, 0f, 0f, Settings.directLightingStrength));
 
 			// SetRenderTarget has logic to flip projection matrix when rendering to render texture. Flip the uv to account for that case.
 			bool isCameraColorFinalTarget = false;

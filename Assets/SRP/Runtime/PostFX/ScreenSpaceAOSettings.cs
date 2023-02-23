@@ -15,16 +15,16 @@ namespace SRP.Runtime
 		}
 		
 		// Parameters
-		public bool Downsample = false;
+		public bool downsample = false;
 		// public bool AfterOpaque = false;
-		public DepthSource Source = DepthSource.DepthNormals;
-		public NormalQuality NormalSamples = NormalQuality.High;
+		public DepthSource source = DepthSource.DepthNormals;
+		public NormalQuality normalSamples = NormalQuality.High;
 		[Min(0)]
-		public float Intensity = 3.0f;
-		[HideInInspector] public float DirectLightingStrength = 0.25f;
-		[Min(0)] public float Radius = 0.035f;
+		public float intensity = 3.0f;
+		[HideInInspector] public float directLightingStrength = 0.25f;
+		[Min(0)] public float radius = 0.035f;
 		[Range(2, 40)]
-		public int SampleCount = 10;
+		public int sampleCount = 10;
 
 		// Enums
 		public enum DepthSource

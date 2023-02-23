@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using SRP.Shared;
 using UnityEditor;
-using UnityEditor.PackageManager.UI;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Experimental.Rendering;
