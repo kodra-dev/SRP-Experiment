@@ -117,30 +117,34 @@
             ENDHLSL
         }
 
-        // 4 - After Opaque
+        // 4 - Combine
         Pass
         {
-            Name "SSAO_AfterOpaque"
+            Name "SSAO_Combine"
 
-            ZTest NotEqual
-            ZWrite Off
             Cull Off
-            Blend One SrcAlpha, Zero One
-            BlendOp Add, Add
+            ZWrite Off
 
             HLSLPROGRAM
                 #pragma vertex VertDefault
-                #pragma fragment FragAfterOpaque
+                #pragma fragment FragCombine
                 #define _SCREEN_SPACE_OCCLUSION
 
                 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-                half4 FragAfterOpaque(Varyings input) : SV_Target
+                TEXTURE2D(_BlitSource);
+                SAMPLER(sampler_linear_clamp);
+
+                half4 FragCombine(Varyings input) : SV_Target
                 {
                     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
                     AmbientOcclusionFactor aoFactor = GetScreenSpaceAmbientOcclusion(input.uv);
                     half occlusion = aoFactor.indirectAmbientOcclusion;
+                    float4 copiedSample = SAMPLE_TEXTURE2D_LOD(_BlitSource, sampler_linear_clamp, input.uv, 0);
+                    // return half4(aoFactor.directAmbientOcclusion, aoFactor.indirectAmbientOcclusion, 0, 1);
+                    // return copiedSample;
+                    return lerp(copiedSample, half4(0, 0, 0, 1), 1 - occlusion);
                     return half4(0.0, 0.0, 0.0, occlusion);
                 }
 

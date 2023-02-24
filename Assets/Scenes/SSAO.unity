@@ -1547,10 +1547,10 @@ MonoBehaviour:
     - rid: 5790414692626726962
       type: {class: BloomSettings, ns: SRP.Runtime, asm: Assembly-CSharp}
       data:
-        enabled: 0
-        intensity: 0
-        iteration: 0
-        threshold: 0
+        enabled: 1
+        intensity: 1.47
+        iteration: 4
+        threshold: 0.503
         thresholdKnee: 0.233
     - rid: 5790414692626726963
       type: {class: ScreenSpaceAOSettings, ns: SRP.Runtime, asm: Assembly-CSharp}

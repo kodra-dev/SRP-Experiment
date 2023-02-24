@@ -270,6 +270,7 @@ namespace SRP.Runtime
 				: new Vector4(flipSign, 0.0f, 1.0f, 1.0f);
 			_buffer.SetGlobalVector(Shader.PropertyToID("_ScaleBiasRt"), scaleBiasRt);
 
+			_buffer.SetGlobalTexture(BlitValet.BlitSourceID, src);
 			// This implicitly also bind depth attachment. Explicitly binding m_Renderer.cameraDepthTarget does not work.
 			_buffer.SetRenderTarget(
 				dst,
@@ -277,7 +278,7 @@ namespace SRP.Runtime
 				RenderBufferStoreAction.Store
 			);
 			_buffer.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, SSAOMaterial, 0,
-			(int)ShaderPasses.AfterOpaque);
+			(int)ShaderPasses.Combine);
 
 
 			context.ExecuteAndClearBuffer(_buffer);
@@ -306,7 +307,7 @@ namespace SRP.Runtime
 			BlurHorizontal = 1,
 			BlurVertical = 2,
 			BlurFinal = 3,
-			AfterOpaque = 4
+			Combine = 4,
 		}
 		
 	}
